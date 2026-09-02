@@ -48,7 +48,7 @@ export default function Work() {
         </div>
       </div>
 
-      <div className="relative h-[68svh] min-h-[460px]">
+      <div className="relative h-[70svh] min-h-[520px]">
         {reduced ? (
           <ul className="grid gap-6 px-5 py-10 md:grid-cols-3 md:px-10">
             {projects.map((pr, i) => (
@@ -80,7 +80,6 @@ export default function Work() {
             </div>
           </>
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--ink)] to-transparent" />
       </div>
 
       {!reduced && (

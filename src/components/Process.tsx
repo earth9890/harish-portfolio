@@ -23,7 +23,8 @@ export default function Process() {
         scrollTrigger: { trigger: root.current, start: "top top", end: () => `+=${dist()}`, pin: true, scrub: 0.6, invalidateOnRefresh: true, anticipatePin: 1 },
       });
       gsap.utils.toArray<HTMLElement>(".step").forEach((s) => {
-        gsap.fromTo(s.querySelector(".step-num"), { yPercent: 30, opacity: 0.2 }, { yPercent: -10, opacity: 1, ease: "none", scrollTrigger: { trigger: s, containerAnimation: tween, start: "left 80%", end: "left 20%", scrub: true } });
+        if (!s.querySelector(".step-num")) return;
+        gsap.fromTo(s.querySelector(".step-num"), { xPercent: 20 }, { xPercent: -10, ease: "none", scrollTrigger: { trigger: s, containerAnimation: tween, start: "left 100%", end: "left 0%", scrub: true } });
         gsap.fromTo(s.querySelector(".step-line"), { scaleX: 0 }, { scaleX: 1, ease: "none", scrollTrigger: { trigger: s, containerAnimation: tween, start: "left 90%", end: "left 40%", scrub: true } });
       });
       gsap.to(".process-progress", { scaleX: 1, ease: "none", scrollTrigger: { trigger: root.current, start: "top top", end: () => `+=${dist()}`, scrub: true } });
@@ -45,12 +46,14 @@ export default function Process() {
           <p className="mt-6 max-w-[40ch] text-lg text-[var(--bone-2)]">Four moves, repeated. Nothing clever, applied stubbornly.</p>
         </div>
         {steps.map((s) => (
-          <article key={s.n} className="step relative flex shrink-0 flex-col justify-center border-t hairline px-5 py-12 md:h-full md:w-[70vw] md:border-l md:border-t-0 md:px-14 md:py-0 lg:w-[56vw]">
-            <span className="step-num display absolute right-6 top-20 text-[clamp(6rem,22vw,22rem)] leading-none text-[var(--bone)] opacity-[0.06] md:right-10 md:top-1/2 md:-translate-y-1/2" aria-hidden>{s.n}</span>
-            <p className="mono">{s.n} · {s.tag}</p>
-            <h3 className="display mt-6 text-[clamp(2.6rem,7vw,7.5rem)] text-[var(--bone)]">{s.title} <span className="serif-it font-normal tracking-normal text-[var(--vermilion)]">{s.it}</span></h3>
-            <span className="step-line my-8 block h-px w-full max-w-md origin-left bg-[var(--hairline-strong)]" />
-            <p className="max-w-[44ch] text-lg leading-relaxed text-[var(--bone-2)] md:text-xl">{s.copy}</p>
+          <article key={s.n} className="step relative flex shrink-0 flex-col justify-center border-t hairline px-5 py-12 md:h-full md:w-[70vw] md:border-l md:border-t-0 md:px-14 md:py-0 lg:w-[52vw]">
+            <span className="step-num display pointer-events-none absolute bottom-4 right-6 z-0 text-[clamp(7rem,24vw,24rem)] leading-none text-[var(--bone)] opacity-[0.05] md:right-10" aria-hidden>{s.n}</span>
+            <div className="relative z-10">
+              <p className="mono">{s.n} · {s.tag}</p>
+              <h3 className="display mt-6 max-w-[12ch] text-balance text-[clamp(2.4rem,6vw,6.5rem)] text-[var(--bone)]">{s.title} <span className="serif-it font-normal tracking-normal text-[var(--vermilion)]">{s.it}</span></h3>
+              <span className="step-line my-8 block h-px w-full max-w-md origin-left bg-[var(--hairline-strong)]" />
+              <p className="max-w-[44ch] text-lg leading-relaxed text-[var(--bone-2)] md:text-xl">{s.copy}</p>
+            </div>
           </article>
         ))}
         <div className="step flex shrink-0 items-center px-5 py-12 md:h-full md:w-[40vw] md:px-14">

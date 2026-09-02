@@ -13,9 +13,9 @@ function makeTexture(p: Project, light: boolean) {
   const g = c.getContext("2d")!;
   const grad = g.createLinearGradient(0, 0, 0, c.height);
   if (light) { grad.addColorStop(0, `hsl(${p.hue} 45% 88%)`); grad.addColorStop(1, "#f1ebdf"); }
-  else { grad.addColorStop(0, `hsl(${p.hue} 60% 14%)`); grad.addColorStop(1, "#0a0908"); }
+  else { grad.addColorStop(0, `hsl(${p.hue} 55% 20%)`); grad.addColorStop(1, "#12100d"); }
   g.fillStyle = grad; g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = light ? `hsla(${p.hue} 60% 30% / 0.35)` : `hsla(${p.hue} 70% 62% / 0.35)`; g.lineWidth = 1.5;
+  g.strokeStyle = light ? `hsla(${p.hue} 60% 30% / 0.35)` : `hsla(${p.hue} 70% 65% / 0.45)`; g.lineWidth = 1.5;
   for (let i = 0; i < 26; i++) {
     g.beginPath();
     const r = 40 + i * 34;
@@ -64,8 +64,8 @@ uniform float uVel;
 uniform float uFront;
 varying vec2 vUv;
 void main(){
+  if(!gl_FrontFacing) discard;
   vec2 uv = vUv;
-  if(!gl_FrontFacing) uv.x = 1.0 - uv.x;
   float ab = abs(uVel) * 0.02;
   vec3 col;
   col.r = texture2D(uMap, uv + vec2(ab, 0.0)).r;
@@ -73,9 +73,8 @@ void main(){
   col.b = texture2D(uMap, uv - vec2(ab, 0.0)).b;
   col += uHover * 0.06;
   float edge = smoothstep(0.0, 0.02, uv.x) * smoothstep(0.0, 0.02, 1.0-uv.x) * smoothstep(0.0, 0.015, uv.y) * smoothstep(0.0, 0.015, 1.0-uv.y);
-  float back = gl_FrontFacing ? 1.0 : 0.18;
-  float dim = mix(0.55, 1.0, uFront);
-  gl_FragColor = vec4(col * dim * (gl_FrontFacing ? 1.0 : 0.6), edge * back);
+  float dim = mix(0.45, 1.0, uFront);
+  gl_FragColor = vec4(col * dim, edge);
 }`;
 
 function Ring({ onActive, dragging, apiRef, onSelect, onFirstDrag }: { onActive: (i: number) => void; dragging: React.RefObject<boolean>; apiRef: React.RefObject<RingApi | null>; onSelect: (i: number) => void; onFirstDrag: () => void }) {
@@ -85,9 +84,10 @@ function Ring({ onActive, dragging, apiRef, onSelect, onFirstDrag }: { onActive:
   const hovered = useRef(-1);
   const hoverAmt = useRef<number[]>(projects.map(() => 0));
   const mats = useRef<THREE.ShaderMaterial[]>([]);
+  const meshes = useRef<THREE.Mesh[]>([]);
   const [light, setLight] = useState(false);
   const textures = useMemo(() => projects.map((p) => makeTexture(p, light)), [light]);
-  const radius = Math.max(2.6, Math.min(4.2, viewport.width * 0.42));
+  const radius = Math.max(3.2, Math.min(4.8, viewport.width * 0.45));
   const step = (Math.PI * 2) / projects.length;
   const lastActive = useRef(-1);
   const pressed = useRef({ x: 0, t: 0, moved: 0 });
@@ -145,13 +145,16 @@ function Ring({ onActive, dragging, apiRef, onSelect, onFirstDrag }: { onActive:
     r.cur += (r.target - r.cur) * Math.min(1, dt * 7);
     if (group.current) {
       group.current.rotation.y = r.cur + (dragging.current ? 0 : Math.sin(r.idle * 0.6) * 0.03);
-      group.current.position.y = Math.sin(r.idle * 0.8) * 0.04;
+      group.current.position.set(0, Math.sin(r.idle * 0.8) * 0.04, -radius);
     }
     let best = -1, bestZ = -Infinity;
+    const gy = group.current!.rotation.y;
     projects.forEach((_, i) => {
-      const a = group.current!.rotation.y + i * step;
+      const a = gy + i * step;
       const z = Math.cos(a);
       if (z > bestZ) { bestZ = z; best = i; }
+      const mesh = meshes.current[i];
+      if (mesh) mesh.rotation.y = -gy; // face the camera
     });
     projects.forEach((_, i) => {
       const target = hovered.current === i ? 1 : 0;
@@ -167,14 +170,14 @@ function Ring({ onActive, dragging, apiRef, onSelect, onFirstDrag }: { onActive:
   });
 
   return (
-    <group ref={group}>
+    <group ref={group} position={[0, 0, -radius]}>
       {projects.map((p, i) => {
         const a = i * step;
         return (
           <mesh
             key={p.id}
+            ref={(m) => { if (m) meshes.current[i] = m; }}
             position={[Math.sin(a) * radius, 0, Math.cos(a) * radius]}
-            rotation={[0, a, 0]}
             onPointerOver={() => { hovered.current = i; }}
             onPointerOut={() => { if (hovered.current === i) hovered.current = -1; }}
             onClick={() => {
@@ -184,13 +187,13 @@ function Ring({ onActive, dragging, apiRef, onSelect, onFirstDrag }: { onActive:
               }
             }}
           >
-            <planeGeometry args={[1.5, 2, 24, 24]} />
+            <planeGeometry args={[1.6, 2.13, 24, 24]} />
             <shaderMaterial
               ref={(m) => { if (m) mats.current[i] = m; }}
               vertexShader={cardVert}
               fragmentShader={cardFrag}
               transparent
-              side={THREE.DoubleSide}
+              side={THREE.FrontSide}
               uniforms={{ uMap: { value: textures[i] }, uHover: { value: 0 }, uVel: { value: 0 }, uFront: { value: 0 } }}
               key={light ? "l" : "d"}
             />
@@ -212,7 +215,7 @@ export default function WorkRing({ onActive, apiRef, onSelect, onFirstDrag }: { 
       onPointerUp={() => setGrabbing(false)}
       onPointerLeave={() => setGrabbing(false)}
     >
-      <Canvas dpr={[1, 1.75]} camera={{ position: [0, 0.15, 8.2], fov: 40 }} gl={{ antialias: true, alpha: true }}>
+      <Canvas dpr={[1, 1.75]} camera={{ position: [0, 0, 5.7], fov: 38 }} gl={{ antialias: true, alpha: true }} onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}>
         <Ring onActive={onActive} dragging={dragging} apiRef={apiRef} onSelect={onSelect} onFirstDrag={onFirstDrag} />
       </Canvas>
     </div>
